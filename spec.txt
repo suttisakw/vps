@@ -1,0 +1,232 @@
+ได้เลยครับ 🙌 ผมจะช่วยเขียนเป็น **spec/คู่มือการ setup VPS** สำหรับระบบ
+**Cloudflare Tunnel + Nginx Proxy Manager (NPM) + Docker services** ตาม requirement ที่คุณให้
+
+---
+
+# VPS Services with Cloudflare Tunnel + NPM
+
+**เป้าหมาย:**
+ติดตั้งและตั้งค่า VPS ที่สามารถรันบริการหลัก (n8n, Node-RED, PostgreSQL, Redis) โดยใช้
+
+* **Cloudflare domain**
+* **Cloudflare Tunnel** (ไม่ต้องเปิด inbound ports)
+* **Nginx Proxy Manager (NPM)** เพื่อจัดการ SSL / Reverse Proxy
+
+---
+
+## 1. VPS Spec ขั้นต่ำ (แนะนำ)
+
+* CPU: 2 vCPU
+* RAM: 4 GB
+* Storage: 40 GB SSD
+* OS: Ubuntu 22.04 LTS (preferred)
+* Network: ไม่ต้องเปิด inbound ports (ใช้ Cloudflare Tunnel)
+
+---
+
+## 2. Software Stack
+
+* **Docker** + **Docker Compose** → ใช้สำหรับ deploy services
+* **Cloudflare Tunnel (cloudflared)** → เชื่อม VPS เข้ากับ Cloudflare network
+* **Nginx Proxy Manager (NPM)** → จัดการ Reverse Proxy + SSL
+* **Core Services:**
+
+  * n8n
+  * Node-RED
+  * PostgreSQL
+  * Redis
+
+---
+
+## 3. ขั้นตอนการ Setup
+
+### 3.1 ติดตั้ง Docker + Docker Compose
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# Docker GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Docker repo
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | \
+sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Allow non-root docker
+sudo usermod -aG docker $USER
+```
+
+---
+
+### 3.2 ติดตั้ง Cloudflare Tunnel (cloudflared)
+
+1. ติดตั้ง binary
+
+```bash
+curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb \
+-o cloudflared.deb
+sudo dpkg -i cloudflared.deb
+```
+
+2. Login เข้ากับ Cloudflare
+
+```bash
+cloudflared tunnel login
+```
+
+→ เปิด browser เพื่อ authenticate domain ของคุณ
+
+3. สร้าง tunnel
+
+```bash
+cloudflared tunnel create my-vps-tunnel
+```
+
+4. ตั้งค่า config tunnel `/etc/cloudflared/config.yml`
+
+```yaml
+tunnel: my-vps-tunnel
+credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: npm.example.com
+    service: http://localhost:81
+  - service: http_status:404
+```
+
+5. Run tunnel เป็น service
+
+```bash
+sudo cloudflared service install
+sudo systemctl enable cloudflared
+sudo systemctl start cloudflared
+```
+
+---
+
+### 3.3 ติดตั้ง Nginx Proxy Manager (NPM)
+
+สร้างไฟล์ `docker-compose.yml`
+
+```yaml
+version: "3"
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - "81:81"   # UI
+      - "80:80"   # HTTP (internal use)
+      - "443:443" # HTTPS (internal use)
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+```
+
+```bash
+docker compose up -d
+```
+
+เข้า `https://npm.example.com` (ผ่าน Cloudflare tunnel) → Login → ตั้งค่า Proxy Hosts
+
+---
+
+### 3.4 Deploy Core Services (Docker Compose)
+
+ไฟล์ `docker-compose.services.yml`
+
+```yaml
+version: "3"
+
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=strongpassword
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8npassword
+    depends_on:
+      - postgres
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+
+  node-red:
+    image: nodered/node-red
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./node_red_data:/data
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8npassword
+      POSTGRES_DB: n8n
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./redis_data:/data
+```
+
+```bash
+docker compose -f docker-compose.services.yml up -d
+```
+
+---
+
+### 3.5 ตั้งค่าใน NPM
+
+* เข้า UI ของ **Nginx Proxy Manager**
+* เพิ่ม Proxy Hosts:
+
+  * `n8n.example.com` → [http://n8n:5678](http://n8n:5678)
+  * `nodered.example.com` → [http://node-red:1880](http://node-red:1880)
+* เปิด SSL (Let’s Encrypt) + Force HTTPS
+
+---
+
+## 4. Security Best Practices
+
+* ใช้ Cloudflare Access/Zero Trust สำหรับ Authentication ก่อนเข้าถึง Services
+* ปิดทุก inbound ports ใน VPS firewall (ยกเว้น outbound สำหรับ update/docker pull)
+* เก็บข้อมูลสำคัญ (PostgreSQL / Redis) ไว้ใน private network เท่านั้น (ไม่ expose ออก NPM)
+* ใช้ strong password + secrets ใน `.env` แยกออกจาก docker-compose
+
+---
+
+## 5. Diagram (Logical Flow)
+
+```
+User → Cloudflare DNS → Cloudflare Tunnel → VPS (NPM) → Services (n8n, Node-RED, PostgreSQL, Redis)
+```
+
+---
+
+คุณอยากให้ผมเขียนเป็น **step-by-step installation script (bash script)** ที่รันอัตโนมัติ setup ทั้งหมด หรือเก็บเป็น **technical document (markdown/PDF)** ดีครับ?
