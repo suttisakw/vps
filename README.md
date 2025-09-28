@@ -188,6 +188,7 @@ ingress:
 cloudflared tunnel route dns adalinda-vps-tunnel npm.adalindawongsa.com
 cloudflared tunnel route dns adalinda-vps-tunnel n8n.adalindawongsa.com
 cloudflared tunnel route dns adalinda-vps-tunnel nodered.adalindawongsa.com
+cloudflared tunnel route dns adalinda-vps-tunnel pgadmin.adalindawongsa.com
 ```
 
 #### 5.5 รัน Tunnel
@@ -237,6 +238,15 @@ Password: changeme
 - ไปที่ **SSL** tab → เปิด **SSL Certificate** → เลือก **Let's Encrypt**
 - กด **Save**
 
+**6.3.3 เพิ่ม pgAdmin Proxy Host**
+- ไปที่ **Proxy Hosts** → **Add Proxy Host**
+- **Domain Names**: `pgadmin.adalindawongsa.com`
+- **Forward Hostname/IP**: `pgadmin`
+- **Forward Port**: `80`
+- เปิด **Block Common Exploits**
+- ไปที่ **SSL** tab → เปิด **SSL Certificate** → เลือก **Let's Encrypt**
+- กด **Save**
+
 ### ✅ ขั้นตอนที่ 7: ตรวจสอบการทำงาน
 
 #### 7.1 ตรวจสอบ Services
@@ -252,6 +262,7 @@ docker compose logs -f
 - **NPM Admin**: https://npm.adalindawongsa.com
 - **n8n**: https://n8n.adalindawongsa.com
 - **Node-RED**: https://nodered.adalindawongsa.com
+- **pgAdmin**: https://pgadmin.adalindawongsa.com
 
 #### 7.3 ตั้งค่า n8n
 1. เข้า https://n8n.adalindawongsa.com
@@ -261,6 +272,21 @@ docker compose logs -f
 #### 7.4 ตั้งค่า Node-RED
 1. เข้า https://nodered.adalindawongsa.com
 2. เริ่มสร้าง flows ใหม่
+
+#### 7.5 ตั้งค่า pgAdmin
+1. เข้า https://pgadmin.adalindawongsa.com
+2. Login ด้วย email และ password ที่ตั้งใน .env
+3. เพิ่ม PostgreSQL server:
+   - คลิกขวาที่ **Servers** → **Register** → **Server**
+   - **General** tab:
+     - **Name**: `VPS PostgreSQL`
+   - **Connection** tab:
+     - **Host name/address**: `postgres`
+     - **Port**: `5432`
+     - **Username**: `n8n`
+     - **Password**: `รหัสผ่านจาก .env (POSTGRES_PASSWORD)`
+   - คลิก **Save**
+4. เริ่มจัดการ database ผ่าน web interface
 
 ### 🚀 ขั้นตอนที่ 8: Production Setup (Optional)
 
@@ -640,6 +666,7 @@ docker volume inspect vps_project_postgres_data
 | NPM | 81 | https://npm.adalindawongsa.com | admin@example.com |
 | n8n | 5678 | https://n8n.adalindawongsa.com | admin |
 | Node-RED | 1880 | https://nodered.adalindawongsa.com | - |
+| pgAdmin | 80 | https://pgadmin.adalindawongsa.com | admin@adalindawongsa.com |
 | Prometheus | 9090 | http://vps-ip:9090 | - |
 | Grafana | 3000 | http://vps-ip:3000 | admin |
 

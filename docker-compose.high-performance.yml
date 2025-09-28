@@ -1,8 +1,8 @@
 version: "3.8"
 
-# Production Docker Compose with additional security and monitoring
+# High Performance Docker Compose for 32GB RAM, 8 Core CPU
 services:
-  # Nginx Proxy Manager   
+  # Nginx Proxy Manager
   npm:
     image: 'jc21/nginx-proxy-manager:latest'
     container_name: nginx-proxy-manager
@@ -25,8 +25,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
-  # n8n Workflow Automation
+  # n8n Workflow Automation (High Performance)
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
@@ -41,13 +49,17 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_USER=n8n
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-postgrespassword123}
-      - N8N_HOST=${N8N_HOST:-n8n.yourdomain.com}
+      - N8N_HOST=${N8N_HOST:-n8n.adalindawongsa.com}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://${N8N_HOST}/
       - GENERIC_TIMEZONE=Asia/Bangkok
       - N8N_LOG_LEVEL=info
       - N8N_METRICS=true
+      - NODE_ENV=production
+      - N8N_PAYLOAD_SIZE_MAX=16777216
+      - N8N_EXECUTIONS_PROCESS=main
+      - N8N_EXECUTIONS_MODE=queue
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
@@ -65,20 +77,21 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '0.5'
+          memory: 4G
+          cpus: '2'
         reservations:
-          memory: 512M
-          cpus: '0.25'
+          memory: 2G
+          cpus: '1'
 
-  # Node-RED
+  # Node-RED (High Performance)
   node-red:
     image: nodered/node-red:latest
     container_name: node-red
     restart: unless-stopped
     environment:
       - TZ=Asia/Bangkok
-      - NODE_OPTIONS=--max_old_space_size=512
+      - NODE_OPTIONS=--max_old_space_size=2048
+      - NODE_ENV=production
     volumes:
       - node_red_data:/data
     networks:
@@ -91,13 +104,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.25'
+          memory: 2G
+          cpus: '1'
         reservations:
-          memory: 256M
-          cpus: '0.1'
+          memory: 1G
+          cpus: '0.5'
 
-  # PostgreSQL Database
+  # PostgreSQL Database (High Performance)
   postgres:
     image: postgres:15-alpine
     container_name: postgres
@@ -108,10 +121,21 @@ services:
       POSTGRES_DB: n8n
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
       POSTGRES_SHARED_PRELOAD_LIBRARIES: pg_stat_statements
+      # High Performance Settings
+      POSTGRES_MAX_CONNECTIONS: 200
+      POSTGRES_SHARED_BUFFERS: 8GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 24GB
+      POSTGRES_MAINTENANCE_WORK_MEM: 2GB
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.9
+      POSTGRES_WAL_BUFFERS: 16MB
+      POSTGRES_DEFAULT_STATISTICS_TARGET: 100
+      POSTGRES_RANDOM_PAGE_COST: 1.1
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: 200
+      POSTGRES_WORK_MEM: 64MB
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
-      - ./postgres.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgresql-high-perf.conf:/etc/postgresql/postgresql.conf:ro
     networks:
       - services
     healthcheck:
@@ -122,11 +146,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 5G
-          cpus: '1'
+          memory: 16G
+          cpus: '4'
         reservations:
-          memory: 512M
-          cpus: '0.5'
+          memory: 8G
+          cpus: '2'
 
   # pgAdmin - Web Interface for PostgreSQL
   pgadmin:
@@ -155,13 +179,13 @@ services:
     deploy:
       resources:
         limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
           memory: 512M
           cpus: '0.25'
-        reservations:
-          memory: 256M
-          cpus: '0.1'
 
-  # Redis Cache
+  # Redis Cache (High Performance)
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -169,15 +193,17 @@ services:
     command: [
       "redis-server",
       "--appendonly", "yes",
-      "--maxmemory", "256mb",
+      "--maxmemory", "4gb",
       "--maxmemory-policy", "allkeys-lru",
       "--save", "900", "1",
       "--save", "300", "10",
-      "--save", "60", "10000"
+      "--save", "60", "10000",
+      "--tcp-keepalive", "60",
+      "--timeout", "300"
     ]
     volumes:
       - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis-high-perf.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - services
     healthcheck:
@@ -188,11 +214,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.25'
+          memory: 6G
+          cpus: '1'
         reservations:
-          memory: 128M
-          cpus: '0.1'
+          memory: 2G
+          cpus: '0.5'
 
   # Prometheus for monitoring
   prometheus:
@@ -202,19 +228,29 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus-high-perf.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
+      - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.max-connections=512'
     networks:
       - services
     profiles:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   # Grafana for visualization
   grafana:
@@ -227,14 +263,29 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD:-grafana123}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
       - services
     depends_on:
+      - postgres
       - prometheus
     profiles:
       - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
 
   # Watchtower for automatic updates
   watchtower:
@@ -247,10 +298,42 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=3600
       - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${SLACK_WEBHOOK_URL:-}
     networks:
       - services
     profiles:
       - auto-update
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.1'
+        reservations:
+          memory: 128M
+          cpus: '0.05'
+
+  # Nginx for static file serving (optional)
+  nginx-static:
+    image: nginx:alpine
+    container_name: nginx-static
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./static-files:/usr/share/nginx/html:ro
+      - ./nginx-static.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - services
+    profiles:
+      - static
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
 
 volumes:
   npm_data:
