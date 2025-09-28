@@ -136,7 +136,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
-      - ./postgresql-high-perf.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
     networks:
       - services
     healthcheck:
@@ -204,7 +204,7 @@ services:
     ]
     volumes:
       - redis_data:/data
-      - ./redis-high-perf.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - services
     healthcheck:
@@ -229,7 +229,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus-high-perf.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
