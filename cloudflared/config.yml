@@ -1,11 +1,9 @@
 tunnel: ${CLOUDFLARE_TUNNEL_NAME:-my-vps-tunnel}
 credentials-file: /root/.cloudflared/${TUNNEL_ID}.json
 
-# No ingress rules defined here - will be managed via NPM
-# The tunnel will connect to NPM on port 81
-
+# Ingress rules for routing traffic through internal Docker network
 ingress:
-  # Route all traffic to Nginx Proxy Manager
+  # Route all traffic to Nginx Proxy Manager (internal network)
   - hostname: "*"
     service: http://npm:81
   # Catch-all rule

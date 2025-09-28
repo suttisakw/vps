@@ -313,6 +313,28 @@ services:
           memory: 128M
           cpus: '0.05'
 
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared/config
+      - ~/.cloudflared:/root/.cloudflared
+    depends_on:
+      - npm
+    networks:
+      - services
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
   # Nginx for static file serving (optional)
   nginx-static:
     image: nginx:alpine
