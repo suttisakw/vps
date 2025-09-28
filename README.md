@@ -1,177 +1,158 @@
-# VPS Services with Cloudflare Tunnel + NPM
+# 🚀 VPS Services with Cloudflare Tunnel + NPM
 
-ระบบ VPS ที่ใช้ **Cloudflare Tunnel** + **Nginx Proxy Manager (NPM)** สำหรับรัน services หลัก (n8n, Node-RED, PostgreSQL, Redis)
+ระบบ VPS ที่ใช้ **Cloudflare Tunnel** + **Nginx Proxy Manager (NPM)** สำหรับรัน services หลัก (n8n, Node-RED, PostgreSQL, Redis, pgAdmin) พร้อม monitoring และ high performance optimization
 
 ## 🎯 เป้าหมาย
 
 - ใช้ Cloudflare domain
 - ใช้ Cloudflare Tunnel (ไม่ต้องเปิด inbound ports)
 - ใช้ Nginx Proxy Manager (NPM) จัดการ SSL / Reverse Proxy
-- รัน services ใน Docker containers
+- รัน services ใน Docker containers พร้อม high performance optimization
+- Monitoring และ alerting system
+- Auto backup และ maintenance
 
 ## 📋 VPS Requirements
 
 ### ขั้นต่ำ (แนะนำ)
-- **CPU**: 2 vCPU
-- **RAM**: 4 GB
-- **Storage**: 40 GB SSD
+- **CPU**: 2 vCPU (แนะนำ 8 vCPU สำหรับ high performance)
+- **RAM**: 4 GB (แนะนำ 32 GB สำหรับ high performance)
+- **Storage**: 40 GB SSD (แนะนำ 100 GB+ สำหรับ high performance)
 - **OS**: Ubuntu 22.04 LTS
 - **Network**: ไม่ต้องเปิด inbound ports
 
-## 🚀 วิธี Setup แบบละเอียด
+## 🚀 Quick Start
 
-### 📋 ขั้นตอนที่ 1: เตรียม VPS
+### 1. เตรียม VPS และ Domain
 
-#### 1.1 สร้าง VPS ใหม่
-- ใช้ Ubuntu 22.04 LTS
-- ขนาดขั้นต่ำ: 2 vCPU, 4GB RAM, 40GB SSD
-- **ไม่ต้องเปิด inbound ports** (ใช้ Cloudflare Tunnel)
+#### 1.1 สร้าง VPS
+```bash
+# เลือก VPS Provider (DigitalOcean, AWS, Linode, Vultr, etc.)
+# ขนาดแนะนำ: 8 vCPU, 32GB RAM, 100GB SSD
+# OS: Ubuntu 22.04 LTS
+```
 
-#### 1.2 เชื่อมต่อ VPS
+#### 1.2 เตรียม Domain
+- ซื้อ domain จาก Cloudflare หรือ provider อื่น
+- ตั้งค่า DNS ใน Cloudflare
+
+#### 1.3 เชื่อมต่อ VPS
 ```bash
 ssh root@your-vps-ip
 # หรือ
 ssh ubuntu@your-vps-ip
 ```
 
-#### 1.3 อัปเดตระบบ
-```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl wget
-```
+### 2. ติดตั้ง Project
 
-### 📁 ขั้นตอนที่ 2: ดาวน์โหลด Project
-
-#### 2.1 Clone Repository
+#### 2.1 Clone หรือ Upload ไฟล์
 ```bash
-git clone <your-repo-url>
+# วิธีที่ 1: Git clone
+git clone https://github.com/yourusername/vps_project.git
+cd vps_project
+
+# วิธีที่ 2: Upload ไฟล์ด้วย SCP
+scp -r vps_project/ root@your-vps-ip:/root/
+ssh root@your-vps-ip
 cd vps_project
 ```
 
-#### 2.2 หรือสร้างไฟล์เอง
+#### 2.2 ตั้งค่า Environment
 ```bash
-mkdir vps_project
-cd vps_project
-# Copy ไฟล์ทั้งหมดจาก project นี้
-```
-
-### ⚙️ ขั้นตอนที่ 3: ตั้งค่า Environment
-
-#### 3.1 สร้างไฟล์ .env
-```bash
+# Copy ไฟล์ .env
 cp env.example .env
+
+# แก้ไข .env ด้วย nano หรือ vim
 nano .env
 ```
 
-#### 3.2 แก้ไขข้อมูลใน .env
+**แก้ไขข้อมูลสำคัญใน .env:**
 ```bash
-# Database Configuration
+# Database Configuration - เปลี่ยนรหัสผ่านให้แข็งแกร่ง
 POSTGRES_PASSWORD=your_very_strong_postgres_password_123!
 N8N_PASSWORD=your_very_strong_n8n_password_456!
 
-# Domain Configuration (ใช้ domain ของคุณ)
-N8N_HOST=n8n.adalindawongsa.com
-NODE_RED_HOST=nodered.adalindawongsa.com
-NPM_HOST=npm.adalindawongsa.com
+# Domain Configuration - ใช้ domain ของคุณ
+N8N_HOST=n8n.yourdomain.com
+NODE_RED_HOST=nodered.yourdomain.com
+NPM_HOST=npm.yourdomain.com
+PGADMIN_HOST=pgadmin.yourdomain.com
 
 # Cloudflare Tunnel Configuration
-CLOUDFLARE_TUNNEL_NAME=adalinda-vps-tunnel
+CLOUDFLARE_TUNNEL_NAME=your-domain-tunnel
 
 # Security Settings
 TZ=Asia/Bangkok
 
-# Grafana Configuration (สำหรับ monitoring)
+# Grafana Configuration
 GRAFANA_PASSWORD=your_strong_grafana_password_789!
+
+# pgAdmin Configuration
+PGADMIN_EMAIL=admin@yourdomain.com
+PGADMIN_PASSWORD=your_strong_pgadmin_password_999!
+
+# High Performance Settings (for 32GB RAM, 8 Core CPU)
+# Uncomment these for high-performance setup
+# POSTGRES_MAX_CONNECTIONS=200
+# POSTGRES_SHARED_BUFFERS=8GB
+# POSTGRES_EFFECTIVE_CACHE_SIZE=24GB
+# REDIS_MAXMEMORY=4GB
+# N8N_MEMORY_LIMIT=4G
+# NODE_RED_MEMORY_LIMIT=2G
 ```
 
-**⚠️ สำคัญ**: เปลี่ยนรหัสผ่านทั้งหมดเป็นรหัสที่แข็งแกร่ง!
+### 3. ติดตั้ง Docker และ Services
 
-### 🐳 ขั้นตอนที่ 4: ติดตั้ง Docker และ Services
-
-#### 4.1 รัน Setup Script อัตโนมัติ
+#### 3.1 รัน Setup Script
 ```bash
+# ให้สิทธิ์ execute
 chmod +x setup.sh
+
+# รัน setup script
 ./setup.sh
 ```
 
-#### 4.2 หรือติดตั้งด้วยตนเอง
-
-**4.2.1 ติดตั้ง Docker**
+#### 3.2 ตรวจสอบการติดตั้ง
 ```bash
-# ติดตั้ง dependencies
-sudo apt install -y ca-certificates curl gnupg lsb-release
+# ตรวจสอบ Docker
+docker --version
+docker compose version
 
-# เพิ่ม Docker GPG key
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-# เพิ่ม Docker repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# ติดตั้ง Docker
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# เพิ่ม user เข้า docker group
-sudo usermod -aG docker $USER
+# ตรวจสอบ Cloudflared
+cloudflared version
 ```
 
-**4.2.2 ติดตั้ง Cloudflared**
-```bash
-curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb \
-    -o cloudflared.deb
-sudo dpkg -i cloudflared.deb
-rm cloudflared.deb
-```
+### 4. ตั้งค่า Cloudflare Tunnel
 
-**4.2.3 สร้าง directories**
+#### 4.1 Login เข้า Cloudflare
 ```bash
-mkdir -p cloudflared
-mkdir -p init-scripts
-mkdir -p backup
-```
-
-**4.2.4 เริ่ม Docker services**
-```bash
-docker compose up -d
-```
-
-### 🌐 ขั้นตอนที่ 5: ตั้งค่า Cloudflare Tunnel
-
-#### 5.1 Login เข้า Cloudflare
-```bash
+# รัน script setup Cloudflare
 chmod +x install-cloudflared.sh
 ./install-cloudflared.sh
 ```
 
 หรือทำด้วยตนเอง:
-
 ```bash
-# Login เข้า Cloudflare (จะเปิด browser)
+# Login เข้า Cloudflare
 cloudflared tunnel login
+# จะเปิด browser ให้ authenticate
 ```
 
-#### 5.2 สร้าง Tunnel
+#### 4.2 สร้าง Tunnel
 ```bash
-# สร้าง tunnel ใหม่
-cloudflared tunnel create adalinda-vps-tunnel
+# สร้าง tunnel ใหม่ (ใช้ชื่อเดียวกับใน .env)
+cloudflared tunnel create your-domain-tunnel
 
-# บันทึก Tunnel ID ที่ได้ (จะใช้ในขั้นตอนต่อไป)
+# บันทึก Tunnel ID ที่ได้ (สำคัญ!)
 ```
 
-#### 5.3 แก้ไข config file
+#### 4.3 แก้ไข config file
 ```bash
 nano cloudflared/config.yml
 ```
 
 ใส่ข้อมูล:
 ```yaml
-tunnel: adalinda-vps-tunnel
+tunnel: your-domain-tunnel
 credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
 
 ingress:
@@ -180,47 +161,49 @@ ingress:
   - service: http_status:404
 ```
 
-**⚠️ เปลี่ยน `<TUNNEL_ID>` เป็น Tunnel ID จริงที่ได้จากขั้นตอน 5.2**
+**⚠️ เปลี่ยน `<TUNNEL_ID>` เป็น Tunnel ID จริง**
 
-#### 5.4 สร้าง DNS Records
+#### 4.4 สร้าง DNS Records
 ```bash
-# สร้าง DNS records ใน Cloudflare
-cloudflared tunnel route dns adalinda-vps-tunnel npm.adalindawongsa.com
-cloudflared tunnel route dns adalinda-vps-tunnel n8n.adalindawongsa.com
-cloudflared tunnel route dns adalinda-vps-tunnel nodered.adalindawongsa.com
-cloudflared tunnel route dns adalinda-vps-tunnel pgadmin.adalindawongsa.com
+# สร้าง DNS records สำหรับแต่ละ subdomain
+cloudflared tunnel route dns your-domain-tunnel npm.yourdomain.com
+cloudflared tunnel route dns your-domain-tunnel n8n.yourdomain.com
+cloudflared tunnel route dns your-domain-tunnel nodered.yourdomain.com
+cloudflared tunnel route dns your-domain-tunnel pgadmin.yourdomain.com
 ```
 
-#### 5.5 รัน Tunnel
+#### 4.5 รัน Tunnel เป็น Service
 ```bash
-# Test tunnel
-cloudflared tunnel --config cloudflared/config.yml run
-
-# หรือรันเป็น service
+# ติดตั้ง tunnel เป็น system service
 sudo cloudflared service install
+
+# เริ่ม service
 sudo systemctl enable cloudflared
 sudo systemctl start cloudflared
+
+# ตรวจสอบ status
+sudo systemctl status cloudflared
 ```
 
-### 🔧 ขั้นตอนที่ 6: ตั้งค่า Nginx Proxy Manager
+### 5. ตั้งค่า Nginx Proxy Manager
 
-#### 6.1 เข้า NPM Admin
+#### 5.1 เข้า NPM Admin
 ```
-URL: https://npm.adalindawongsa.com
+URL: https://npm.yourdomain.com
 Email: admin@example.com
 Password: changeme
 ```
 
-#### 6.2 เปลี่ยนรหัสผ่าน
+#### 5.2 เปลี่ยนรหัสผ่าน Admin
 1. เข้า NPM Admin
 2. ไปที่ **Users** → **Admin User**
 3. เปลี่ยนรหัสผ่านใหม่
 
-#### 6.3 เพิ่ม Proxy Hosts
+#### 5.3 เพิ่ม Proxy Hosts
 
-**6.3.1 เพิ่ม n8n Proxy Host**
+**5.3.1 เพิ่ม n8n Proxy Host**
 - ไปที่ **Proxy Hosts** → **Add Proxy Host**
-- **Domain Names**: `n8n.adalindawongsa.com`
+- **Domain Names**: `n8n.yourdomain.com`
 - **Forward Hostname/IP**: `n8n`
 - **Forward Port**: `5678`
 - เปิด **Block Common Exploits**
@@ -228,26 +211,48 @@ Password: changeme
 - ไปที่ **SSL** tab → เปิด **SSL Certificate** → เลือก **Let's Encrypt**
 - กด **Save**
 
-**6.3.2 เพิ่ม Node-RED Proxy Host**
-- ไปที่ **Proxy Hosts** → **Add Proxy Host**
-- **Domain Names**: `nodered.adalindawongsa.com`
+**5.3.2 เพิ่ม Node-RED Proxy Host**
+- **Domain Names**: `nodered.yourdomain.com`
 - **Forward Hostname/IP**: `node-red`
 - **Forward Port**: `1880`
 - เปิด **Block Common Exploits**
 - เปิด **Websockets Support**
-- ไปที่ **SSL** tab → เปิด **SSL Certificate** → เลือก **Let's Encrypt**
-- กด **Save**
+- **SSL**: Let's Encrypt
 
-**6.3.3 เพิ่ม pgAdmin Proxy Host**
-- ไปที่ **Proxy Hosts** → **Add Proxy Host**
-- **Domain Names**: `pgadmin.adalindawongsa.com`
+**5.3.3 เพิ่ม pgAdmin Proxy Host**
+- **Domain Names**: `pgadmin.yourdomain.com`
 - **Forward Hostname/IP**: `pgadmin`
 - **Forward Port**: `80`
 - เปิด **Block Common Exploits**
-- ไปที่ **SSL** tab → เปิด **SSL Certificate** → เลือก **Let's Encrypt**
-- กด **Save**
+- **SSL**: Let's Encrypt
 
-### ✅ ขั้นตอนที่ 7: ตรวจสอบการทำงาน
+### 6. รัน Services
+
+#### 6.1 รัน Basic Services
+```bash
+# รัน services หลัก
+docker compose up -d
+```
+
+#### 6.2 รันพร้อม Monitoring (แนะนำ)
+```bash
+# รัน services พร้อม monitoring
+docker compose --profile monitoring up -d
+```
+
+#### 6.3 รันพร้อม Auto-Update (แนะนำ)
+```bash
+# รัน services พร้อม auto-update
+docker compose --profile auto-update up -d
+```
+
+#### 6.4 รันทั้งหมด (Production)
+```bash
+# รัน services ทั้งหมด (monitoring + auto-update)
+docker compose --profile monitoring --profile auto-update up -d
+```
+
+### 7. ตรวจสอบและทดสอบ
 
 #### 7.1 ตรวจสอบ Services
 ```bash
@@ -256,197 +261,106 @@ docker compose ps
 
 # ดู logs
 docker compose logs -f
+
+# ตรวจสอบ tunnel
+cloudflared tunnel list
 ```
 
 #### 7.2 ทดสอบการเข้าถึง
-- **NPM Admin**: https://npm.adalindawongsa.com
-- **n8n**: https://n8n.adalindawongsa.com
-- **Node-RED**: https://nodered.adalindawongsa.com
-- **pgAdmin**: https://pgadmin.adalindawongsa.com
-
-#### 7.3 ตั้งค่า n8n
-1. เข้า https://n8n.adalindawongsa.com
-2. Login ด้วย: `admin` / `รหัสผ่านที่ตั้งใน .env`
-3. ตั้งค่า user account ใหม่
-
-#### 7.4 ตั้งค่า Node-RED
-1. เข้า https://nodered.adalindawongsa.com
-2. เริ่มสร้าง flows ใหม่
-
-#### 7.5 ตั้งค่า pgAdmin
-1. เข้า https://pgadmin.adalindawongsa.com
-2. Login ด้วย email และ password ที่ตั้งใน .env
-3. เพิ่ม PostgreSQL server:
-   - คลิกขวาที่ **Servers** → **Register** → **Server**
-   - **General** tab:
-     - **Name**: `VPS PostgreSQL`
-   - **Connection** tab:
-     - **Host name/address**: `postgres`
-     - **Port**: `5432`
-     - **Username**: `n8n`
-     - **Password**: `รหัสผ่านจาก .env (POSTGRES_PASSWORD)`
-   - คลิก **Save**
-4. เริ่มจัดการ database ผ่าน web interface
-
-### 🚀 ขั้นตอนที่ 8: Production Setup (Optional)
-
-#### 8.1 ใช้ Production Docker Compose
-```bash
-# ใช้ production config พร้อม monitoring
-docker compose -f docker-compose.prod.yml up -d
-
-# เปิด monitoring services
-docker compose -f docker-compose.prod.yml --profile monitoring up -d
-```
-
-#### 8.2 เข้า Monitoring
+- **NPM Admin**: https://npm.yourdomain.com
+- **n8n**: https://n8n.yourdomain.com
+- **Node-RED**: https://nodered.yourdomain.com
+- **pgAdmin**: https://pgadmin.yourdomain.com
 - **Prometheus**: http://your-vps-ip:9090
 - **Grafana**: http://your-vps-ip:3000
-  - Username: `admin`
-  - Password: `รหัสผ่านที่ตั้งใน .env`
 
-#### 8.3 ตั้งค่า Auto-Update
-```bash
-# เปิด auto-update service
-docker compose -f docker-compose.prod.yml --profile auto-update up -d
-```
+#### 7.3 ตั้งค่า Services
 
-### 🔒 ขั้นตอนที่ 9: Security Hardening
+**ตั้งค่า n8n:**
+1. เข้า https://n8n.yourdomain.com
+2. Login: `admin` / รหัสผ่านจาก .env
+3. ตั้งค่า user account ใหม่
 
-#### 9.1 ตั้งค่า Firewall
-```bash
-# ปิด inbound ports ทั้งหมด
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw enable
-```
+**ตั้งค่า pgAdmin:**
+1. เข้า https://pgadmin.yourdomain.com
+2. Login: admin@yourdomain.com / รหัสผ่านจาก .env
+3. เพิ่ม PostgreSQL server:
+   - **Name**: `VPS PostgreSQL`
+   - **Host**: `postgres`
+   - **Port**: `5432`
+   - **Username**: `n8n`
+   - **Password**: รหัสผ่านจาก .env
 
-#### 9.2 ตั้งค่า Fail2Ban
-```bash
-sudo apt install -y fail2ban
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
-```
+**ตั้งค่า Grafana:**
+1. เข้า http://your-vps-ip:3000
+2. Login: `admin` / รหัสผ่านจาก .env
+3. Import dashboards สำหรับ monitoring
 
-#### 9.3 ตั้งค่า Cloudflare Access (แนะนำ)
-1. เข้า Cloudflare Dashboard
-2. ไปที่ **Zero Trust** → **Access**
-3. สร้าง Access Application สำหรับแต่ละ service
-4. ตั้งค่า authentication rules
+## 🔧 Services ที่ติดตั้ง
 
-### 📊 ขั้นตอนที่ 10: Backup และ Maintenance
+| Service | Port | External URL | Admin Access | Memory | CPU |
+|---------|------|--------------|--------------|--------|-----|
+| **Nginx Proxy Manager** | 81 | https://npm.yourdomain.com | admin@example.com | 1GB | 1 core |
+| **n8n** | 5678 | https://n8n.yourdomain.com | admin | 4GB | 2 cores |
+| **Node-RED** | 1880 | https://nodered.yourdomain.com | - | 2GB | 1 core |
+| **PostgreSQL** | 5432 | - | - | 16GB | 4 cores |
+| **pgAdmin** | 80 | https://pgadmin.yourdomain.com | admin@yourdomain.com | 1GB | 0.5 cores |
+| **Redis** | 6379 | - | - | 6GB | 1 core |
+| **Prometheus** | 9090 | http://vps-ip:9090 | - | 2GB | 1 core |
+| **Grafana** | 3000 | http://vps-ip:3000 | admin | 1GB | 0.5 cores |
 
-#### 10.1 สร้าง Backup
-```bash
-chmod +x backup.sh
-./backup.sh
-```
+## 📊 High Performance Features
 
-#### 10.2 ตั้งค่า Auto Backup (Cron)
-```bash
-# เพิ่ม cron job สำหรับ backup รายวัน
-crontab -e
+### Resource Optimization (32GB RAM, 8 Core CPU)
+- **PostgreSQL**: 16GB RAM, 4 CPU cores
+- **Redis**: 6GB RAM, 1 CPU core
+- **n8n**: 4GB RAM, 2 CPU cores
+- **Node-RED**: 2GB RAM, 1 CPU core
+- **Others**: 3GB RAM, 0.5 CPU cores
 
-# เพิ่มบรรทัดนี้:
-0 2 * * * /path/to/your/vps_project/backup.sh
-```
+### Performance Optimizations
+- **PostgreSQL**: shared_buffers 8GB, work_mem 64MB
+- **Redis**: maxmemory 4GB, allkeys-lru policy
+- **n8n**: NODE_OPTIONS --max_old_space_size=2048
+- **Node-RED**: NODE_OPTIONS --max_old_space_size=2048
 
-#### 10.3 Update Services
-```bash
-# Update images
-docker compose pull
+## 🔒 Security Features
 
-# Restart services
-docker compose up -d
-```
+### Basic Security
+- **Strong passwords** configuration
+- **SSL/TLS** encryption ผ่าน Let's Encrypt
+- **Firewall** configuration
+- **Health checks** สำหรับทุก services
+
+### Advanced Security
+- **Resource limits** สำหรับทุก containers
+- **Cloudflare Access/Zero Trust** integration
+- **Fail2Ban** protection
+- **Enhanced cookie protection** สำหรับ pgAdmin
 
 ## 📁 ไฟล์สำคัญ
 
 ```
 vps_project/
-├── docker-compose.yml          # Docker services ทั้งหมด
-├── .env.example               # ตัวอย่าง environment variables
+├── docker-compose.yml          # Docker services ทั้งหมด (high performance)
+├── env.example                 # ตัวอย่าง environment variables
 ├── cloudflared/
 │   └── config.yml            # Cloudflare Tunnel config
-├── setup.sh                  # Script ติดตั้งระบบ
-├── install-cloudflared.sh    # Script setup Cloudflare Tunnel
-└── README.md                 # คู่มือนี้
-```
-
-## 🔧 Services ที่ติดตั้ง
-
-| Service | Port | Description |
-|---------|------|-------------|
-| **Nginx Proxy Manager** | 81 | จัดการ Reverse Proxy + SSL |
-| **n8n** | 5678 | Workflow Automation |
-| **Node-RED** | 1880 | Visual Programming |
-| **PostgreSQL** | 5432 | Database (internal) |
-| **Redis** | 6379 | Cache (internal) |
-| **Cloudflared** | - | Tunnel (optional in compose) |
-
-## 🌐 URLs หลัง Setup
-
-- **NPM Admin**: `https://npm.yourdomain.com`
-- **n8n**: `https://n8n.yourdomain.com`
-- **Node-RED**: `https://nodered.yourdomain.com`
-
-## 🔐 Default Credentials
-
-### Nginx Proxy Manager
-- **Email**: `admin@example.com`
-- **Password**: `changeme`
-
-### n8n
-- **Username**: `admin`
-- **Password**: (ดูในไฟล์ `.env`)
-
-## 📝 การตั้งค่าเพิ่มเติม
-
-### 1. แก้ไข .env file
-
-```bash
-# Database Configuration
-POSTGRES_PASSWORD=your_strong_postgres_password_here
-N8N_PASSWORD=your_strong_n8n_password_here
-
-# Domain Configuration
-N8N_HOST=n8n.yourdomain.com
-NODE_RED_HOST=nodered.yourdomain.com
-NPM_HOST=npm.yourdomain.com
-```
-
-### 2. ตั้งค่า NPM Proxy Hosts
-
-เข้า `https://npm.yourdomain.com` และเพิ่ม Proxy Hosts:
-
-| Domain | Forward Hostname/IP | Forward Port | SSL |
-|--------|-------------------|--------------|-----|
-| `n8n.yourdomain.com` | `n8n` | `5678` | ✅ |
-| `nodered.yourdomain.com` | `node-red` | `1880` | ✅ |
-
-### 3. Cloudflare DNS Records
-
-สร้าง DNS records ใน Cloudflare:
-
-```
-Type: CNAME
-Name: npm
-Content: <tunnel-id>.cfargotunnel.com
-
-Type: CNAME  
-Name: n8n
-Content: <tunnel-id>.cfargotunnel.com
-
-Type: CNAME
-Name: nodered
-Content: <tunnel-id>.cfargotunnel.com
+├── postgresql.conf            # PostgreSQL high performance config
+├── redis.conf                 # Redis high performance config
+├── prometheus.yml             # Prometheus monitoring config
+├── nginx-static.conf          # Nginx static files config
+├── setup.sh                   # Script ติดตั้งระบบ
+├── install-cloudflared.sh     # Script setup Cloudflare Tunnel
+├── backup.sh                  # Script backup ข้อมูล
+├── HIGH_PERFORMANCE_SETUP.md  # คู่มือ high performance
+├── DEPLOYMENT_CHECKLIST.md    # Checklist การ deploy
+└── README.md                  # คู่มือนี้
 ```
 
 ## 🛠️ Commands ที่มีประโยชน์
 
 ### Docker Management
-
 ```bash
 # ดู status services
 docker compose ps
@@ -454,8 +368,14 @@ docker compose ps
 # ดู logs
 docker compose logs -f
 
+# ดู logs ของ service เฉพาะ
+docker compose logs -f n8n
+
 # Restart services
 docker compose restart
+
+# Restart service เฉพาะ
+docker compose restart n8n
 
 # Update services
 docker compose pull
@@ -463,18 +383,38 @@ docker compose up -d
 
 # Stop services
 docker compose down
+
+# ดู resource usage
+docker stats
+```
+
+### Monitoring
+```bash
+# เข้า Prometheus
+curl http://localhost:9090
+
+# เข้า Grafana
+curl http://localhost:3000
+
+# ดู system metrics
+htop
+free -h
+df -h
 ```
 
 ### Backup
-
 ```bash
-# Backup volumes
-docker run --rm -v postgres_data:/data -v $(pwd)/backup:/backup alpine tar czf /backup/postgres_backup.tar.gz -C /data .
-docker run --rm -v n8n_data:/data -v $(pwd)/backup:/backup alpine tar czf /backup/n8n_backup.tar.gz -C /data .
+# สร้าง backup
+./backup.sh
+
+# Backup PostgreSQL
+docker compose exec postgres pg_dump -U n8n n8n > backup/n8n_$(date +%Y%m%d).sql
+
+# Restore PostgreSQL
+docker compose exec -T postgres psql -U n8n -d n8n < backup/n8n_20240101.sql
 ```
 
 ### Cloudflare Tunnel
-
 ```bash
 # ดู tunnel status
 cloudflared tunnel list
@@ -482,8 +422,8 @@ cloudflared tunnel list
 # Test tunnel
 cloudflared tunnel --config cloudflared/config.yml run
 
-# Delete tunnel (ถ้าต้องการ)
-cloudflared tunnel delete <tunnel-name>
+# ดู tunnel routes
+cloudflared tunnel route list
 ```
 
 ## 🔒 Security Best Practices
@@ -494,248 +434,97 @@ cloudflared tunnel delete <tunnel-name>
 4. **ปิด inbound ports** ใน VPS firewall
 5. **Backup ข้อมูล** เป็นประจำ
 6. **Update services** เป็นประจำ
+7. **Monitor logs** เป็นประจำ
+8. **ตั้งค่า alerts** สำหรับ critical events
 
-## 🆘 Troubleshooting แบบละเอียด
+## 🆘 Troubleshooting
 
-### 🔍 Services ไม่ขึ้น
-
-#### ตรวจสอบ Docker Services
+### Services ไม่ขึ้น
 ```bash
-# ดู status ของ services
-docker compose ps
+# ดู logs
+docker compose logs
 
-# ดู logs แบบ real-time
-docker compose logs -f
+# ตรวจสอบ ports
+netstat -tulpn | grep :81
+netstat -tulpn | grep :5678
 
-# ดู logs ของ service เฉพาะ
-docker compose logs -f n8n
-docker compose logs -f postgres
-docker compose logs -f redis
-```
-
-#### ตรวจสอบ Ports
-```bash
-# ดู ports ที่เปิดอยู่
-netstat -tulpn | grep :81   # NPM
-netstat -tulpn | grep :5678 # n8n
-netstat -tulpn | grep :1880 # Node-RED
-netstat -tulpn | grep :5432 # PostgreSQL
-```
-
-#### แก้ไขปัญหาที่พบบ่อย
-```bash
-# Restart services ทั้งหมด
+# Restart services
 docker compose restart
-
-# Stop และ start ใหม่
-docker compose down
-docker compose up -d
-
-# ลบ volumes และเริ่มใหม่ (ระวัง! จะลบข้อมูล)
-docker compose down -v
-docker compose up -d
 ```
 
-### 🌐 Cloudflare Tunnel ไม่ทำงาน
-
-#### ตรวจสอบ Tunnel Status
+### Cloudflare Tunnel ไม่ทำงาน
 ```bash
-# ดู tunnels ทั้งหมด
+# ตรวจสอบ tunnel status
 cloudflared tunnel list
-
-# ดู tunnel routes
-cloudflared tunnel route list
 
 # Test tunnel config
 cloudflared tunnel --config cloudflared/config.yml validate
-```
 
-#### แก้ไขปัญหาทั่วไป
-```bash
-# ตรวจสอบ credentials file
-ls -la ~/.cloudflared/
-
-# ตรวจสอบ config file
-cat cloudflared/config.yml
-
-# รัน tunnel แบบ debug
-cloudflared tunnel --config cloudflared/config.yml run --loglevel debug
-```
-
-#### ตั้งค่า Tunnel Service ใหม่
-```bash
-# ลบ service เก่า
-sudo cloudflared service uninstall
-
-# ติดตั้งใหม่
-sudo cloudflared service install
-
-# เริ่ม service
-sudo systemctl start cloudflared
+# ตรวจสอบ service
 sudo systemctl status cloudflared
 ```
 
-### 🔐 SSL ไม่ทำงาน
-
-#### ตรวจสอบ DNS
+### SSL ไม่ทำงาน
 ```bash
-# ตรวจสอบ DNS records
-nslookup npm.adalindawongsa.com
-nslookup n8n.adalindawongsa.com
-nslookup nodered.adalindawongsa.com
+# ตรวจสอบ DNS
+nslookup npm.yourdomain.com
 
-# ตรวจสอบจาก VPS
-dig npm.adalindawongsa.com
-```
-
-#### ตรวจสอบ NPM SSL
-1. เข้า NPM Admin: https://npm.adalindawongsa.com
-2. ไปที่ **SSL Certificates**
-3. ตรวจสอบว่า certificate ถูกสร้างแล้ว
-4. ตรวจสอบ **Proxy Hosts** → **SSL** tab
-
-#### แก้ไข SSL Issues
-```bash
 # ลบ SSL certificate เก่า
 rm -rf npm_letsencrypt/*
-
-# Restart NPM
 docker compose restart npm
-
-# ตรวจสอบ logs
-docker compose logs -f npm
 ```
 
-### 🗄️ Database Issues
-
-#### PostgreSQL Connection Issues
+### Performance Issues
 ```bash
-# ตรวจสอบ PostgreSQL logs
-docker compose logs -f postgres
-
-# เข้า PostgreSQL container
-docker compose exec postgres psql -U n8n -d n8n
-
-# ตรวจสอบ database
-docker compose exec postgres psql -U n8n -d n8n -c "\l"
-```
-
-#### Redis Issues
-```bash
-# ตรวจสอบ Redis logs
-docker compose logs -f redis
-
-# Test Redis connection
-docker compose exec redis redis-cli ping
-
-# ตรวจสอบ Redis info
-docker compose exec redis redis-cli info
-```
-
-### 📊 Performance Issues
-
-#### ตรวจสอบ Resource Usage
-```bash
-# ดู Docker stats
+# ดู resource usage
 docker stats
-
-# ดู disk usage
-df -h
-du -sh ./*
-
-# ดู memory usage
 free -h
+htop
+
+# ตรวจสอบ PostgreSQL performance
+docker compose exec postgres psql -U n8n -d n8n -c "
+SELECT query, mean_time, calls 
+FROM pg_stat_statements 
+ORDER BY mean_time DESC 
+LIMIT 10;"
 ```
 
-#### Optimize Performance
-```bash
-# ล้าง Docker cache
-docker system prune -a
+## 📋 Deployment Checklist
 
-# ตรวจสอบ volumes
-docker volume ls
-docker volume inspect vps_project_postgres_data
-```
+### Pre-Deployment
+- [ ] VPS specs (8 vCPU, 32GB RAM, 100GB SSD)
+- [ ] Domain ซื้อและตั้งค่า DNS
+- [ ] SSH access ได้
+- [ ] Project files upload แล้ว
 
-## 📋 Quick Reference
+### Installation
+- [ ] .env file แก้ไขแล้ว
+- [ ] Docker และ Cloudflared ติดตั้งแล้ว
+- [ ] Services รันได้แล้ว
+- [ ] Cloudflare Tunnel ตั้งค่าแล้ว
 
-### 🔗 URLs และ Ports
+### Configuration
+- [ ] NPM Proxy Hosts สร้างแล้ว
+- [ ] SSL certificates ทำงานได้
+- [ ] Services เข้าถึงได้ผ่าน web
+- [ ] Monitoring ทำงานได้
 
-| Service | Local Port | External URL | Admin Access |
-|---------|------------|--------------|--------------|
-| NPM | 81 | https://npm.adalindawongsa.com | admin@example.com |
-| n8n | 5678 | https://n8n.adalindawongsa.com | admin |
-| Node-RED | 1880 | https://nodered.adalindawongsa.com | - |
-| pgAdmin | 80 | https://pgadmin.adalindawongsa.com | admin@adalindawongsa.com |
-| Prometheus | 9090 | http://vps-ip:9090 | - |
-| Grafana | 3000 | http://vps-ip:3000 | admin |
-
-### ⚡ Quick Commands
-
-```bash
-# ดู status ทั้งหมด
-docker compose ps
-
-# Restart service เฉพาะ
-docker compose restart n8n
-
-# ดู logs
-docker compose logs -f
-
-# Backup ข้อมูล
-./backup.sh
-
-# Update services
-docker compose pull && docker compose up -d
-
-# ตรวจสอบ tunnel
-cloudflared tunnel list
-```
-
-### 🔧 Configuration Files
-
-| File | Purpose | Location |
-|------|---------|----------|
-| `.env` | Environment variables | Project root |
-| `docker-compose.yml` | Basic services | Project root |
-| `docker-compose.prod.yml` | Production + monitoring | Project root |
-| `cloudflared/config.yml` | Tunnel configuration | cloudflared/ |
-| `prometheus.yml` | Monitoring config | Project root |
-
-### 🚨 Emergency Procedures
-
-#### Service Down
-```bash
-# Restart everything
-docker compose down && docker compose up -d
-
-# Check logs
-docker compose logs --tail=100
-```
-
-#### Data Recovery
-```bash
-# Restore from backup
-tar -xzf backup/20240101_120000.tar.gz
-
-# Copy volumes back
-docker compose down
-# Copy restored data to volumes
-docker compose up -d
-```
-
-#### Reset Everything
-```bash
-# ⚠️ DANGER: This will delete all data
-docker compose down -v
-rm -rf .env
-# Start fresh setup
-```
+### Security
+- [ ] รหัสผ่านเปลี่ยนแล้ว
+- [ ] Firewall ตั้งค่าแล้ว
+- [ ] Backup ทำงานได้
+- [ ] Monitoring alerts ตั้งค่าแล้ว
 
 ## 📞 Support
 
-หากมีปัญหา สามารถตรวจสอบ logs หรือเปิด issue ใน repository นี้
+หากมีปัญหา สามารถ:
+1. ตรวจสอบ logs: `docker compose logs -f`
+2. ตรวจสอบ status: `docker compose ps`
+3. ดู troubleshooting guide
+4. เปิด issue ใน repository
 
 ---
+
+**🎉 ระบบพร้อมใช้งานแล้ว!**
 
 **หมายเหตุ**: ระบบนี้ใช้ Cloudflare Tunnel ดังนั้นไม่จำเป็นต้องเปิด inbound ports ใน VPS firewall

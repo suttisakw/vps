@@ -1,6 +1,7 @@
 version: "3.8"
 
-# High Performance Docker Compose for 32GB RAM, 8 Core CPU
+# VPS Services with Cloudflare Tunnel + NPM
+# Optimized for High Performance (32GB RAM, 8 Core CPU)
 services:
   # Nginx Proxy Manager
   npm:
